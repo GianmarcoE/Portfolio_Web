@@ -1,0 +1,9 @@
+numpy==2.2.3
+openpyxl==3.1.5
+pandas==2.2.3
+streamlit~=1.45.1
+streamlit-keyup==0.3.0
+greenlet==3.2.3
+sqlalchemy==2.0.41
+psycopg2-binary
+requests~=2.32.3
