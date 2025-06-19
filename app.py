@@ -65,8 +65,24 @@ if not filtered_df.empty:
 else:
     st.info("Select at least one owner to view data.")
 
-# Show filtered data
+# Show top and worst transactions
+top_3 = df.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
+top_3['label'] = top_3['owner'] + ' - ' + top_3['stock']
+worst_3 = df.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
+worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
 
+fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
+fig_worst = operations.top_worst_graph(False, worst_3, 'red', 'Worst transactions')
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("")
+    st.plotly_chart(fig_best, use_container_width=True)
+
+with col2:
+    st.write("")
+    st.plotly_chart(fig_worst, use_container_width=True)
 
 # Session state to track button click
 if "show_form" not in st.session_state:
