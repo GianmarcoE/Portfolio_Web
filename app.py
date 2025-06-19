@@ -85,7 +85,7 @@ if st.button("✔️ Close open transaction"):
 # Display form if button1 clicked
 if st.session_state.show_form:
     st.subheader("New Transaction")
-    owner = st.selectbox("Select Owner", ["Coccia", "Gim", "Stefano"])
+    owner = st.selectbox("Select Owner", df["owner"].unique())
     stock = st.text_input("Stock")
     price_buy = st.number_input("Price buy", step=0.01)
     date_buy = st.date_input("Date buy", value=datetime.date.today())
