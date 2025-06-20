@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
-from utilities import operations
+from utilities import operations, db_operations
 
 
 # UI
@@ -9,7 +9,7 @@ st.title("Transactions List")
 st.write("")
 st.write("")
 
-df, engine = operations.load_data()
+df = db_operations.load_data()
 df = df.drop(columns=["id"])
 
 df["earning"] = df["price_sell"] - df["price_buy"]
@@ -25,12 +25,15 @@ daily["cumulative"] = daily.groupby("owner")["earning"].cumsum()
 
 # Let user select owners
 owners = df["owner"].unique().tolist()
-cols = st.columns(len(owners))
+
+with st.expander("Filter owners", expanded=False):
+    cols = st.columns(len(owners))
 
 selected_owners = [
     owner for col, owner in zip(cols, owners)
     if col.checkbox(owner, value=True, key=f"chk_{owner}")
 ]
+
 st.write("")
 
 # Filter both the chart and the table
@@ -67,9 +70,9 @@ else:
     st.info("Select at least one owner to view data.")
 
 # Show top and worst transactions
-top_3 = df.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
+top_3 = filtered_df.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
 top_3['label'] = top_3['owner'] + ' - ' + top_3['stock']
-worst_3 = df.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
+worst_3 = filtered_df.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
 worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
 
 fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
@@ -115,7 +118,7 @@ if st.session_state.show_form:
         date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
-        operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_sell, currency)
+        db_operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_sell, currency)
 
 if st.session_state.show_form2:
     st.subheader("Close open position")
@@ -130,4 +133,4 @@ if st.session_state.show_form2:
     date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
-        operations.close_stock(engine, owner, selected_stock, price_sell, date_sell)
+        db_operations.close_stock(engine, owner, selected_stock, price_sell, date_sell)
