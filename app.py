@@ -49,6 +49,7 @@ if not filtered_df.empty:
 
     st.markdown("Total Earnings (closed positions)")
     st.line_chart(chart_df)
+
     with st.expander("Show transactions", expanded=False):
         st.dataframe(filtered_df, hide_index=True, column_config=
         {
