@@ -9,7 +9,7 @@ st.title("Transactions List")
 st.write("")
 st.write("")
 
-df = db_operations.load_data()
+engine, df = db_operations.load_data()
 df = df.drop(columns=["id"])
 
 df["earning"] = df["price_sell"] - df["price_buy"]
