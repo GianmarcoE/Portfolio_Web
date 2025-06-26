@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 
 
-@st.cache_resource
 def get_connection():
     # Connect to Neon PostgreSQL
     return create_engine(st.secrets["db_connection"])
@@ -11,12 +10,10 @@ def get_connection():
 
 # Load current data
 @st.cache_data(ttl=300)  # cache results for 5 minutes
-def load_data():
-    engine = get_connection()
+def load_data(_engine):
     query = "SELECT * FROM transactions ORDER BY id"
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-    return engine, df
+    df = pd.read_sql(query, _engine)
+    return df
 
 
 def new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_sell, currency):
