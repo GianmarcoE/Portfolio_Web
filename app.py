@@ -128,8 +128,8 @@ if st.session_state.show_form:
         date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
-        db_operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy,
-                                      price_sell, date_sell, currency, ticker)
+        db_operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy, quantity_buy,
+                                      price_sell, date_sell, quantity_sell, currency, ticker)
 
 if st.session_state.show_form2:
     st.subheader("Close open position")
@@ -145,4 +145,4 @@ if st.session_state.show_form2:
     date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
-        db_operations.close_stock(engine, owner, selected_stock, price_sell, date_sell)
+        db_operations.close_stock(engine, owner, selected_stock, price_sell, date_sell, quantity_sell)
