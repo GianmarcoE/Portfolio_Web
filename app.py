@@ -115,7 +115,7 @@ if st.session_state.show_form:
     owner = st.selectbox("Select Owner", df["owner"].unique())
     stock = st.text_input("Stock")
     ticker = st.text_input("Ticker (e.g. TSLA)")
-    price_buy = st.number_input("Price buy", step=0.01)
+    price_buy = st.number_input("Stock buy price", step=0.01)
     quantity_buy = st.number_input("Q.ty", step=0.01)
     date_buy = st.date_input("Date buy", value=datetime.date.today())
     currency = st.selectbox("Currency", ["EUR", "USD", "PLN"])
@@ -123,8 +123,8 @@ if st.session_state.show_form:
     price_sell = None
     date_sell = None
     if sold:
-        price_sell = st.number_input("Price sell", step=0.01)
-        quantity_sell = st.number_input("Q.ty", step=0.01)
+        price_sell = st.number_input("Stock sale price", step=0.01)
+        quantity_sell = st.number_input("Q.ty sold", step=0.01)
         date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
