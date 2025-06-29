@@ -1,7 +1,9 @@
 import requests
 import json
+from datetime import date
 import pandas as pd
 import plotly.express as px
+import yfinance as yf
 
 
 def api_request_fx(currency, transaction_date) -> float:
@@ -14,6 +16,25 @@ def api_request_fx(currency, transaction_date) -> float:
         return fx_rate
     except Exception as e:
         print(f'Error fetching exchange rate: {str(e)}')
+
+
+def api_current_price(df):
+    # Identify open transactions (no sell date)
+    open_mask = df["date_sell"].isna()
+    today = "OPEN"
+
+    # For each unique open stock, fetch current price and assign today's date
+    for ticker in df.loc[open_mask, "ticker"].unique():
+        try:
+            current_price = yf.Ticker(ticker).history(period="1d")["Close"].iloc[-1]
+            # Update price and date in df_display
+            stock_mask = (df["ticker"] == ticker) & open_mask
+            df.loc[stock_mask, "total_sell"] = current_price * df.loc[stock_mask, "quantity_buy"]
+            df.loc[stock_mask, "earning"] = df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"]
+            df.loc[stock_mask, "date_sell"] = today
+        except Exception as e:
+            print(f"Could not fetch price for {ticker}: {e}")
+    return df
 
 
 def convert_to_eur(row, price, date):

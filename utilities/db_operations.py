@@ -16,19 +16,25 @@ def load_data(_engine):
     return df
 
 
-def new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_sell, currency):
+def new_stock_to_db(engine, owner, stock, price_buy, date_buy, quantity_buy,
+                    price_sell, date_sell, quantity_sell, currency, ticker):
     if owner and stock and price_buy > 0 and date_buy:
         with engine.begin() as conn:
             conn.execute(text("""
-                INSERT INTO transactions (owner, stock, price_buy, date_buy, price_sell, date_sell, currency)
-                VALUES (:owner, :stock, :price_buy, :date_buy, :price_sell, :date_sell, :currency)
+                INSERT INTO transactions (owner, stock, ticker, price_buy, date_buy, quantity_buy,
+                                          price_sell, date_sell, quantity_sell, currency)
+                VALUES (:owner, :stock, :ticker, :price_buy, :date_buy, :quantity_buy,
+                        :price_sell, :date_sell, :quantity_sell, :currency)
             """), {
                 "owner": owner,
                 "stock": stock,
+                "ticker": ticker,
                 "price_buy": price_buy,
                 "date_buy": date_buy,
+                "quantity_buy": quantity_buy,
                 "price_sell": price_sell,
                 "date_sell": date_sell,
+                "quantity_sell": quantity_sell,
                 "currency": currency
             })
         st.success("Transaction added.")
@@ -39,7 +45,7 @@ def new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_
         st.error("Please fill all fields.")
 
 
-def close_stock(engine, owner, stock, price_sell, date_sell):
+def close_stock(engine, owner, stock, price_sell, date_sell, quantity_sell):
     if owner and stock and price_sell > 0 and date_sell:
         metadata = MetaData()
         transactions_table = Table("transactions", metadata, autoload_with=engine)
@@ -53,6 +59,7 @@ def close_stock(engine, owner, stock, price_sell, date_sell):
                 )
                 .values(
                     price_sell=price_sell,
+                    quantity_sell=quantity_sell,
                     date_sell=date_sell
                 )
             )

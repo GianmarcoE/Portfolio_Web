@@ -13,7 +13,10 @@ engine = db_operations.get_connection()
 df = db_operations.load_data(engine)
 df = df.drop(columns=["id"])
 
-df["earning"] = df["price_sell"] - df["price_buy"]
+#add calculation columns
+df["total_buy"] = df["price_buy"] * df["quantity_buy"]
+df["total_sell"] = df["price_sell"] * df["quantity_sell"]
+df["earning"] = df["total_sell"] - df["total_buy"]
 
 # convert earnings to EUR
 df["earning"] = df.apply(lambda row: operations.convert_to_eur(row, "earning", "date_sell"), axis=1)
@@ -48,6 +51,7 @@ if not filtered_df.empty:
         .reset_index()
         .sort_values(["owner", "date_sell"])
     )
+
     daily["cumulative"] = daily.groupby("owner")["earning"].cumsum()
     chart_df = daily.pivot(index="date_sell", columns="owner", values="cumulative").ffill()
 
@@ -55,25 +59,27 @@ if not filtered_df.empty:
     st.line_chart(chart_df)
 
     with st.expander("Show transactions", expanded=False):
-        st.dataframe(filtered_df, hide_index=True, column_config=
-        {
-            "owner": st.column_config.TextColumn("Owner"),
-            "stock": st.column_config.TextColumn("Stock"),
-            "price_buy": st.column_config.NumberColumn("Buy", format="%.2f"),
-            "date_buy": st.column_config.DateColumn("Buy Date"),
-            "price_sell": st.column_config.NumberColumn("Sell", format="%.2f"),
-            "date_sell": st.column_config.DateColumn("Sell Date"),
-            "currency": st.column_config.TextColumn("Currency"),
-            "earning": st.column_config.NumberColumn("Earnings", format="%.2f €"),
-        }
-                     )
+        filtered_df = operations.api_current_price(filtered_df)
+        st.dataframe(filtered_df.drop(columns=["price_buy", "quantity_buy", "price_sell", "quantity_sell"]),
+                     hide_index=True, column_config=
+                        {
+                            "owner": st.column_config.TextColumn("Owner"),
+                            "ticker": st.column_config.TextColumn("Ticker"),
+                            "total_buy": st.column_config.NumberColumn("Buy", format="%.2f"),
+                            "date_buy": st.column_config.DateColumn("Buy Date"),
+                            "total_sell": st.column_config.NumberColumn("Sell", format="%.2f"),
+                            "date_sell": st.column_config.DateColumn("Sell Date"),
+                            "currency": st.column_config.TextColumn("Currency"),
+                            "earning": st.column_config.NumberColumn("Earnings", format="%.2f €"),
+                        }
+                    )
 else:
     st.info("Select at least one owner to view data.")
 
 # Show top and worst transactions
-top_3 = filtered_df.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
+top_3 = filtered_df[filtered_df["date_sell"] != "OPEN"].nlargest(3, 'earning')[['owner', 'stock', 'earning']]
 top_3['label'] = top_3['owner'] + ' - ' + top_3['stock']
-worst_3 = filtered_df.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
+worst_3 = filtered_df[filtered_df["date_sell"] != "OPEN"].nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
 worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
 
 fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
@@ -108,7 +114,9 @@ if st.session_state.show_form:
     st.subheader("New Transaction")
     owner = st.selectbox("Select Owner", df["owner"].unique())
     stock = st.text_input("Stock")
+    ticker = st.text_input("Ticker (e.g. TSLA)")
     price_buy = st.number_input("Price buy", step=0.01)
+    quantity_buy = st.number_input("Q.ty", step=0.01)
     date_buy = st.date_input("Date buy", value=datetime.date.today())
     currency = st.selectbox("Currency", ["EUR", "USD", "PLN"])
     sold = st.checkbox("Has this stock been sold?")
@@ -116,10 +124,12 @@ if st.session_state.show_form:
     date_sell = None
     if sold:
         price_sell = st.number_input("Price sell", step=0.01)
+        quantity_sell = st.number_input("Q.ty", step=0.01)
         date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):
-        db_operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy, price_sell, date_sell, currency)
+        db_operations.new_stock_to_db(engine, owner, stock, price_buy, date_buy,
+                                      price_sell, date_sell, currency, ticker)
 
 if st.session_state.show_form2:
     st.subheader("Close open position")
@@ -131,6 +141,7 @@ if st.session_state.show_form2:
     selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
 
     price_sell = st.number_input("Sell Price", step=0.01)
+    quantity_buy = st.number_input("Q.ty", step=0.01)
     date_sell = st.date_input("Date sold", value=datetime.date.today())
 
     if st.button("Submit"):

@@ -8,3 +8,4 @@ sqlalchemy==2.0.41
 psycopg2-binary
 requests~=2.32.3
 plotly~=6.1.2
+yfinance~=0.2.64
