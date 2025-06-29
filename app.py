@@ -122,6 +122,7 @@ if st.session_state.show_form:
     sold = st.checkbox("Has this stock been sold?")
     price_sell = None
     date_sell = None
+    quantity_sell = None
     if sold:
         price_sell = st.number_input("Stock sale price", step=0.01)
         quantity_sell = st.number_input("Q.ty sold", step=0.01)
