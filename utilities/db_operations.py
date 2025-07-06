@@ -17,14 +17,14 @@ def load_data(_engine):
 
 
 def new_stock_to_db(engine, owner, stock, price_buy, date_buy, quantity_buy,
-                    price_sell, date_sell, quantity_sell, currency, ticker):
+                    price_sell, date_sell, quantity_sell, currency, ticker, dividends):
     if owner and stock and price_buy > 0 and date_buy:
         with engine.begin() as conn:
             conn.execute(text("""
                 INSERT INTO transactions (owner, stock, ticker, price_buy, date_buy, quantity_buy,
-                                          price_sell, date_sell, quantity_sell, currency)
+                                          price_sell, date_sell, quantity_sell, currency, dividends)
                 VALUES (:owner, :stock, :ticker, :price_buy, :date_buy, :quantity_buy,
-                        :price_sell, :date_sell, :quantity_sell, :currency)
+                        :price_sell, :date_sell, :quantity_sell, :currency, :dividends)
             """), {
                 "owner": owner,
                 "stock": stock,
@@ -35,7 +35,8 @@ def new_stock_to_db(engine, owner, stock, price_buy, date_buy, quantity_buy,
                 "price_sell": price_sell,
                 "date_sell": date_sell,
                 "quantity_sell": quantity_sell,
-                "currency": currency
+                "currency": currency,
+                "dividends": dividends
             })
         st.success("Transaction added.")
         st.session_state.show_form = False
@@ -45,7 +46,7 @@ def new_stock_to_db(engine, owner, stock, price_buy, date_buy, quantity_buy,
         st.error("Please fill all fields.")
 
 
-def close_stock(engine, owner, stock, price_sell, date_sell, quantity_sell):
+def close_stock(engine, owner, stock, price_sell, date_sell, quantity_sell, dividends):
     if owner and stock and price_sell > 0 and date_sell:
         metadata = MetaData()
         transactions_table = Table("transactions", metadata, autoload_with=engine)
@@ -60,7 +61,8 @@ def close_stock(engine, owner, stock, price_sell, date_sell, quantity_sell):
                 .values(
                     price_sell=price_sell,
                     quantity_sell=quantity_sell,
-                    date_sell=date_sell
+                    date_sell=date_sell,
+                    dividends=dividends
                 )
             )
             conn.execute(stmt)

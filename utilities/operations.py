@@ -30,7 +30,7 @@ def api_current_price(df):
             # Update price and date in df_display
             stock_mask = (df["ticker"] == ticker) & open_mask
             df.loc[stock_mask, "total_sell"] = current_price * df.loc[stock_mask, "quantity_buy"]
-            df.loc[stock_mask, "earning"] = df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"]
+            df.loc[stock_mask, "earning"] = round(df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"], 2)
             df.loc[stock_mask, "date_sell"] = today
         except Exception as e:
             print(f"Could not fetch price for {ticker}: {e}")
