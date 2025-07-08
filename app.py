@@ -143,7 +143,7 @@ if st.session_state.show_form:
     price_sell = None
     date_sell = None
     quantity_sell = None
-    dividend = 0
+    dividends = 0
     if sold:
         price_sell = st.number_input("Stock sale price", step=0.01)
         quantity_sell = st.number_input("Q.ty sold", step=0.01)
