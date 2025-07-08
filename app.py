@@ -121,11 +121,14 @@ if "show_form2" not in st.session_state:
     st.session_state.show_form2 = False
 
 # Button to show the form
-if st.button("➕ Add transaction"):
-    st.session_state.show_form = not st.session_state.show_form
+col1, col2 = st.columns([1, 1], gap="small")
+with col1:
+    if st.button("➕ Add transaction", use_container_width=True):
+        st.session_state.show_form = not st.session_state.show_form
 
-if st.button("✔️ Close open transaction"):
-    st.session_state.show_form2 = not st.session_state.show_form2
+with col2:
+    if st.button("✔️ Close open transaction", use_container_width=True):
+        st.session_state.show_form2 = not st.session_state.show_form2
 
 # Display form if button1 clicked
 if st.session_state.show_form:
