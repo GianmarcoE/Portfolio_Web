@@ -73,8 +73,6 @@ if not filtered_df.empty:
     chart_df = daily.pivot(index="date_sell", columns="owner", values="cumulative").ffill()
 
     st.markdown("Total Earnings")
-    # Ensure the index is datetime
-    # chart_df.index = pd.to_datetime(chart_df.index)
     st.line_chart(chart_df)
 
     with st.expander("Show all transactions details", expanded=False):

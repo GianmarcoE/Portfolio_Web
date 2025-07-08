@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 import json
 from datetime import date
@@ -31,6 +33,8 @@ def api_current_price(df):
             stock_mask = (df["ticker"] == ticker) & open_mask
             df.loc[stock_mask, "total_sell"] = current_price * df.loc[stock_mask, "quantity_buy"]
             df.loc[stock_mask, "earning"] = round(df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"], 2)
+            df.loc[stock_mask, "date_sell"] = datetime.date.today()
+            df.loc[stock_mask, "earning"] = df.apply(lambda row: convert_to_eur(row, "earning", "date_sell"), axis=1)
             df.loc[stock_mask, "date_sell"] = today
         except Exception as e:
             print(f"Could not fetch price for {ticker}: {e}")
@@ -39,6 +43,7 @@ def api_current_price(df):
 
 def convert_to_eur(row, price, date):
     if row["currency"] != "EUR" and not pd.isna(row[date]):
+        row[date] = datetime.date.today()
         return round(row[price] / api_request_fx(row["currency"], row[date]), 2)
     return round(row[price], 2)
 
