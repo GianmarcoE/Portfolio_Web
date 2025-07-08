@@ -5,6 +5,7 @@ from utilities import operations, db_operations
 
 
 # UI
+st.set_page_config(layout="wide")
 st.title("Transactions List")
 st.write("")
 st.write("")
@@ -16,21 +17,24 @@ df = db_operations.load_data(engine)
 df = df.drop(columns=["id"])
 
 owners = df["owner"].unique().tolist()
-with st.expander("Settings ⚙️", expanded=False):
-    st.caption("Owners Selection")
-    cols = st.columns(len(owners))
-    selected_owners = [
-        owner for col, owner in zip(cols, owners)
-        if col.checkbox(owner, value=True, key=f"chk_{owner}")
-    ]
-    st.caption("Others")
-    col1, col2 = st.columns(2)
-    with col1:
-        include_dividends = st.checkbox("Include dividends", value=True)
-    with col2:
-        include_open = st.checkbox("Include open positions", value=False)
 
-st.write("")
+col1, col2 = st.columns([2, 1])  # col1 is twice as wide
+with col1:
+    with st.expander("Settings ⚙️", expanded=False):
+        st.caption("Owners Selection")
+        cols = st.columns(len(owners))
+        selected_owners = [
+            owner for col, owner in zip(cols, owners)
+            if col.checkbox(owner, value=True, key=f"chk_{owner}")
+        ]
+        st.caption("Others")
+        col_1, col_2 = st.columns(2)
+        with col_1:
+            include_dividends = st.checkbox("Include dividends", value=True)
+        with col_2:
+            include_open = st.checkbox("Include open positions", value=False)
+
+    st.write("")
 
 # add calculation columns
 df["total_buy"] = df["price_buy"] * df["quantity_buy"]
@@ -72,25 +76,27 @@ if not filtered_df.empty:
     daily["cumulative"] = daily.groupby("owner")["earning"].cumsum()
     chart_df = daily.pivot(index="date_sell", columns="owner", values="cumulative").ffill()
 
-    st.markdown("Total Earnings")
-    st.line_chart(chart_df)
+    with col1:
+        st.markdown("Total Earnings")
+        st.line_chart(chart_df)
 
-    with st.expander("Show all transactions details", expanded=False):
-        st.dataframe(open_df.drop(columns=["price_buy", "quantity_buy", "price_sell", "quantity_sell"]),
-                     hide_index=True, column_config=
-                        {
-                            "owner": st.column_config.TextColumn("Owner"),
-                            "stock": st.column_config.TextColumn("Stock"),
-                            "ticker": st.column_config.TextColumn("Ticker"),
-                            "total_buy": st.column_config.NumberColumn("Buy", format="%.2f"),
-                            "date_buy": st.column_config.DateColumn("Buy Date"),
-                            "total_sell": st.column_config.NumberColumn("Sell", format="%.2f"),
-                            "date_sell": st.column_config.DateColumn("Sell Date"),
-                            "currency": st.column_config.TextColumn("Currency"),
-                            "dividends": st.column_config.NumberColumn("Dividends", format="%.2f"),
-                            "earning": st.column_config.NumberColumn("Earnings", format="%.2f €"),
-                        }
-                    )
+        with st.expander("Show all transactions details", expanded=False):
+            st.dataframe(open_df.drop(columns=["price_buy", "quantity_buy", "price_sell", "quantity_sell"]),
+                         hide_index=True, column_config=
+                            {
+                                "owner": st.column_config.TextColumn("Owner"),
+                                "stock": st.column_config.TextColumn("Stock"),
+                                "ticker": st.column_config.TextColumn("Ticker"),
+                                "total_buy": st.column_config.NumberColumn("Buy", format="%.2f"),
+                                "date_buy": st.column_config.DateColumn("Buy Date"),
+                                "total_sell": st.column_config.NumberColumn("Sell", format="%.2f"),
+                                "date_sell": st.column_config.DateColumn("Sell Date"),
+                                "currency": st.column_config.TextColumn("Currency"),
+                                "dividends": st.column_config.NumberColumn("Dividends", format="%.2f"),
+                                "earning": st.column_config.NumberColumn("Earnings", format="%.2f €"),
+                            }
+                        )
+        st.write("")
 else:
     st.info("Select at least one owner to view data.")
 
@@ -103,10 +109,10 @@ worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
 fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
 fig_worst = operations.top_worst_graph(False, worst_3, 'red', 'Worst transactions')
 
-col1, col2 = st.columns(2)
+# col1, col2 = st.columns(2)
 
-with col1:
-    st.write("")
+with col2:
+    # st.write("")
     st.plotly_chart(fig_best, use_container_width=True)
 
 with col2:
@@ -121,14 +127,15 @@ if "show_form2" not in st.session_state:
     st.session_state.show_form2 = False
 
 # Button to show the form
-col1, col2 = st.columns([1, 1], gap="small")
 with col1:
-    if st.button("➕ Add transaction", use_container_width=True):
-        st.session_state.show_form = not st.session_state.show_form
+    col_1, col_2 = st.columns([1, 1], gap="small")
+    with col_1:
+        if st.button("➕ Add transaction", use_container_width=True):
+            st.session_state.show_form = not st.session_state.show_form
 
-with col2:
-    if st.button("✔️ Close open transaction", use_container_width=True):
-        st.session_state.show_form2 = not st.session_state.show_form2
+    with col_2:
+        if st.button("✔️ Close open transaction", use_container_width=True):
+            st.session_state.show_form2 = not st.session_state.show_form2
 
 # Display form if button1 clicked
 if st.session_state.show_form:

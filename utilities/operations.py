@@ -2,7 +2,6 @@ import datetime
 
 import requests
 import json
-from datetime import date
 import pandas as pd
 import plotly.express as px
 import yfinance as yf
