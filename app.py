@@ -5,7 +5,7 @@ from utilities import operations, db_operations
 
 
 # Cache database operations
-@st.cache_data(ttl=3000)  # Cache for 5 minutes
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def load_cached_data():
     """Load data from database with caching"""
     engine = db_operations.get_connection()
@@ -13,7 +13,7 @@ def load_cached_data():
     return df  # .drop(columns=["id"])
 
 
-@st.cache_data(ttl=3000)  # Cache for 5 minute
+@st.cache_data(ttl=600)  # Cache for 10 minute
 def get_current_prices(df_filtered):
     """Get current prices with caching"""
     if df_filtered.empty:
