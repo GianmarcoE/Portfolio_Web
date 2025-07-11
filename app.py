@@ -5,7 +5,7 @@ from utilities import operations, db_operations
 
 
 # Cache database operations
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=3000)  # Cache for 5 minutes
 def load_cached_data():
     """Load data from database with caching"""
     engine = db_operations.get_connection()
@@ -13,7 +13,7 @@ def load_cached_data():
     return df  # .drop(columns=["id"])
 
 
-@st.cache_data(ttl=300)  # Cache for 5 minute
+@st.cache_data(ttl=3000)  # Cache for 5 minute
 def get_current_prices(df_filtered):
     """Get current prices with caching"""
     if df_filtered.empty:
@@ -35,6 +35,55 @@ def calculate_metrics(df, include_dividends=True):
     # Convert earnings to EUR
     df["earning"] = df.apply(lambda row: operations.convert_to_eur(row, "earning", "date_sell"), axis=1)
     return df
+
+
+@st.cache_data
+def calculate_owner_stats(df):
+    """Calculate statistics for each owner"""
+    stats = {}
+
+    for owner in df["owner"].unique():
+        owner_df = df[df["owner"] == owner].copy()
+
+        # Closed positions only for most metrics
+        closed_df = owner_df[owner_df["date_sell"].notna()]
+        open_df = owner_df[owner_df["date_sell"].isna()]
+
+        # Total earnings (closed positions)
+        total_earnings = closed_df["earning"].sum() if not closed_df.empty else 0
+
+        # Average position holding time (closed positions only)
+        if not closed_df.empty:
+            closed_df["date_buy"] = pd.to_datetime(closed_df["date_buy"])
+            closed_df["date_sell"] = pd.to_datetime(closed_df["date_sell"])
+            closed_df["holding_days"] = (closed_df["date_sell"] - closed_df["date_buy"]).dt.days
+            avg_holding_days = closed_df["holding_days"].mean()
+        else:
+            avg_holding_days = 0
+
+        # Number of transactions
+        total_transactions = len(closed_df)
+        open_positions = len(open_df)
+
+        # Win rate
+        winning_trades = len(closed_df[closed_df["earning"] > 0])
+        win_rate = (winning_trades / total_transactions * 100) if total_transactions > 0 else 0
+
+        # Best and worst trade
+        best_trade = closed_df["earning"].max() if not closed_df.empty else 0
+        worst_trade = closed_df["earning"].min() if not closed_df.empty else 0
+
+        stats[owner] = {
+            "total_earnings": total_earnings,
+            "avg_holding_days": avg_holding_days,
+            "total_transactions": total_transactions,
+            "open_positions": open_positions,
+            "win_rate": win_rate,
+            "best_trade": best_trade,
+            "worst_trade": worst_trade
+        }
+
+    return stats
 
 
 def create_daily_cumulative(df):
@@ -97,6 +146,55 @@ with col1:
 # Calculate metrics with caching
 df_with_metrics = calculate_metrics(df, include_dividends)
 
+# Calculate owner statistics
+owner_stats = calculate_owner_stats(df_with_metrics)
+
+# Display owner cards
+if selected_owners:
+    st.subheader("📊 Owner Performance Summary")
+
+    # Create cards for selected owners
+    cards_per_row = 2
+    rows_needed = (len(selected_owners) + cards_per_row - 1) // cards_per_row
+
+    for row in range(rows_needed):
+        cols = st.columns(cards_per_row)
+        for i in range(cards_per_row):
+            owner_idx = row * cards_per_row + i
+            if owner_idx < len(selected_owners):
+                owner = selected_owners[owner_idx]
+                stats = owner_stats[owner]
+
+                with cols[i]:
+                    # Create card styling
+                    earnings_color = "green" if stats["total_earnings"] >= 0 else "#d61111"
+                    worst_color = "green" if stats["worst_trade"] >= 0 else "#d61111"
+
+                    st.markdown(f"""
+                    <div style="
+                        border: 1px solid #ddd;
+                        border-radius: 10px;
+                        padding: 15px;
+                        margin: 10px 0;
+                        background-color: #222;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    ">
+                        <h3 style="margin-top: 0; color: #b8b6b6;">👤 {owner}</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div><strong>💰 Total Earnings:</strong> 
+                                <span style="color: {earnings_color}">€{stats['total_earnings']:.2f}</span>
+                            </div>
+                            <div><strong>📅 Avg. Hold Time:</strong> {stats['avg_holding_days']:.0f} days</div>
+                            <div><strong>🎯 Win Rate:</strong> {stats['win_rate']:.1f}%</div>
+                            <div><strong>📊 Transactions:</strong> {stats['total_transactions']} closed, {stats['open_positions']} open</div>
+                            <div><strong>🏆 Best Trade:</strong> <span style="color: green">€{stats['best_trade']:.2f}</span></div>
+                            <div><strong>📉 Worst Trade:</strong> <span style="color: {worst_color}">€{stats['worst_trade']:.2f}</span></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+    st.write("")
+
 # Filter data
 filtered_df = df_with_metrics[df_with_metrics["owner"].isin(selected_owners)] if selected_owners else pd.DataFrame()
 
@@ -147,7 +245,7 @@ if not filtered_df.empty:
         worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
 
         fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
-        fig_worst = operations.top_worst_graph(False, worst_3, 'red', 'Worst transactions')
+        fig_worst = operations.top_worst_graph(False, worst_3, '#d61111', 'Worst transactions')
 
         with col2:
             st.plotly_chart(fig_best, use_container_width=True)
