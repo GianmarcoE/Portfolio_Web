@@ -73,3 +73,17 @@ def close_stock(engine, owner, stock, price_sell, date_sell, quantity_sell, divi
             st.rerun()
     else:
         st.error("Please fill all fields.")
+
+
+def delete_stock(engine, record_id):
+    """
+    Deletes a record from the specified table based on its ID.
+
+    Parameters:
+        engine: SQLAlchemy engine connected to your Neon database.
+        record_id (int or str): ID of the record to delete.
+    """
+    with engine.connect() as conn:
+        query = text(f"DELETE FROM transactions WHERE id = :id")
+        conn.execute(query, {"id": record_id})
+        conn.commit()
