@@ -80,7 +80,7 @@ def calculate_owner_stats(df):
             "open_positions": open_positions,
             "win_rate": win_rate,
             "best_trade": best_trade,
-            "worst_trade": worst_trade
+            "worst_trade": worst_trade,
         }
 
     return stats
@@ -149,12 +149,26 @@ df_with_metrics = calculate_metrics(df, include_dividends)
 # Calculate owner statistics
 owner_stats = calculate_owner_stats(df_with_metrics)
 
+badge_1 = operations.badges('#189e25', 'white', '👑 King Fiches')
+badge_2 = operations.badges('#7a0b6f', 'white', '🏃‍♂️ Chaser')
+badge_3 = operations.badges('#9e1e18', 'white', '💩 Loser')
+badges = [badge_1, badge_2, badge_3]
+
+# Get top 3 earners sorted by total_earnings (descending)
+top_3_earners = sorted(owner_stats.items(),
+                       key=lambda x: x[1]['total_earnings'],
+                       reverse=True)[:3]
+
+# Assign badges to top 3 earners
+for i, (owner_name, owner_data) in enumerate(top_3_earners):
+    owner_stats[owner_name]['badge'] = badges[i]
+
 # Display owner cards
 if selected_owners:
     st.subheader("📊 Owner Performance Summary")
 
     # Create cards for selected owners
-    cards_per_row = 2
+    cards_per_row = 3
     rows_needed = (len(selected_owners) + cards_per_row - 1) // cards_per_row
 
     for row in range(rows_needed):
@@ -179,7 +193,7 @@ if selected_owners:
                         background-color: #222;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     ">
-                        <h3 style="margin-top: 0; color: #b8b6b6;">👤 {owner}</h3>
+                        <h3 style="margin-top: 0; color: #b8b6b6;">👤 {owner} {stats['badge']}</h3>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                             <div><strong>💰 Total Earnings:</strong> 
                                 <span style="color: {earnings_color}">€{stats['total_earnings']:.2f}</span>
@@ -284,8 +298,16 @@ with col1:
 # Display form if button1 clicked
 with col1:
     if st.session_state.active_form == "A":
+        st.subheader("New Transaction")
+
+        # Initialize session state for sold checkbox if not exists
+        if 'sold_checkbox' not in st.session_state:
+            st.session_state.sold_checkbox = False
+
+        # Checkbox outside form with session state
+        sold = st.checkbox("Has this stock been sold?", key='sold_checkbox')
+
         with st.form("form_a"):
-            st.subheader("New Transaction")
             owner = st.selectbox("Select Owner", df["owner"].unique())
             stock = st.text_input("Stock")
             ticker = st.text_input("Ticker (e.g. TSLA)")
@@ -293,12 +315,15 @@ with col1:
             quantity_buy = st.number_input("Q.ty", step=0.01)
             date_buy = st.date_input("Date buy", value=today)
             currency = st.selectbox("Currency", ["EUR", "USD", "PLN"])
-            sold = st.checkbox("Has this stock been sold?")
+
+            # Initialize default values
             price_sell = None
             date_sell = None
             quantity_sell = None
             dividends = 0
-            if sold:
+
+            # Show additional fields based on session state
+            if st.session_state.sold_checkbox:
                 price_sell = st.number_input("Stock sale price", step=0.01)
                 quantity_sell = st.number_input("Q.ty sold", step=0.01)
                 date_sell = st.date_input("Date sold", value=today)
@@ -310,6 +335,8 @@ with col1:
                                               price_sell, date_sell, quantity_sell, currency, ticker, dividends)
                 clear_cache()  # Clear cache after adding new data
                 st.success("Transaction added successfully!")
+                # Reset the checkbox after successful submission
+                st.session_state.sold_checkbox = False
 
     elif st.session_state.active_form == "B":
         # SOLUTION 1: Move the owner selection outside the form
