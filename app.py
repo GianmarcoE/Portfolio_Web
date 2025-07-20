@@ -33,7 +33,9 @@ def calculate_metrics(df, include_dividends=True):
     df["earning"] = df["total_sell"] - df["total_buy"]
 
     # Convert earnings to EUR
-    df["earning"] = df.apply(lambda row: operations.convert_to_eur(row, "earning", "date_sell"), axis=1)
+    usd_rate, pln_rate = operations.today_rate()
+    df["earning"] = df.apply(lambda row: operations.convert_open_to_eur(row, "earning", "date_sell", usd_rate, pln_rate)
+                             , axis=1)
     return df
 
 

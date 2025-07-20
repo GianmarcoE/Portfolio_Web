@@ -100,19 +100,64 @@ def convert_to_eur(row, price, date):
     return round(row[price], 2)
 
 
+def convert_open_to_eur(row, price, date, usd_rate, pln_rate):
+    if row["currency"] == "USD" and not pd.isna(row[date]):
+        return round(row[price] / usd_rate, 2)
+    elif row["currency"] == "PLN" and not pd.isna(row[date]):
+        return round(row[price] / pln_rate, 2)
+    return round(row[price], 2)
+
+
+def today_rate():
+    usd_rate = round(api_request_fx("USD", datetime.date.today()), 2)
+    pln_rate = round(api_request_fx("PLN", datetime.date.today()), 2)
+    return usd_rate, pln_rate
+
+
+def create_unique_labels(stocks_df):
+    """
+    Create unique labels for stocks that might have duplicates
+    """
+    unique_labels = []
+    label_counts = {}
+
+    for _, row in stocks_df.iterrows():
+        base_label = row['label']
+
+        # Keep track of how many times we've seen this label
+        if base_label in label_counts:
+            label_counts[base_label] += 1
+            # Add a counter to make it unique
+            unique_label = f"{base_label}({label_counts[base_label]})"
+        else:
+            label_counts[base_label] = 1
+            unique_label = base_label
+
+        unique_labels.append(unique_label)
+
+    return unique_labels
+
+
 def top_worst_graph(is_top, stocks, color, graph_title):
     if is_top:
         max_value = stocks["earning"].max()
         graph_range = [0, max_value * 1.2]
     else:
         max_value = stocks["earning"].min()
-        graph_range = [max_value * 1.2, 0]
+        if max_value < 0:
+            graph_range = [max_value * 1.2, 0]
+        else:
+            max_value = stocks["earning"].max()
+            color = 'green'
+            graph_range = [0, max_value * 1.2]
 
     fig = go.Figure()
 
+    unique_labels = create_unique_labels(stocks)
+
     # Add bar trace with modern styling
     fig.add_trace(go.Bar(
-        x=stocks['label'],
+        x=unique_labels,
         y=stocks['earning'],
         # Modern color scheme
         marker=dict(
