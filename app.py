@@ -235,15 +235,16 @@ if not filtered_df.empty:
         st.line_chart(chart_df)
 
         with st.expander("Show all transactions details", expanded=False):
-            st.dataframe(open_df.drop(columns=["price_buy", "quantity_buy", "price_sell", "quantity_sell"]),
+            st.dataframe(open_df.drop(columns=["quantity_buy", "price_sell", "quantity_sell"]),
                          hide_index=True, column_config=
                          {
                              "owner": st.column_config.TextColumn("Owner"),
                              "stock": st.column_config.TextColumn("Stock"),
                              "ticker": st.column_config.TextColumn("Ticker"),
-                             "total_buy": st.column_config.NumberColumn("Buy", format="%.2f"),
+                             "price_buy": st.column_config.NumberColumn("Buy Price"),
+                             "total_buy": st.column_config.NumberColumn("Buy tot", format="%.2f"),
                              "date_buy": st.column_config.DateColumn("Buy Date"),
-                             "total_sell": st.column_config.NumberColumn("Sell", format="%.2f"),
+                             "total_sell": st.column_config.NumberColumn("Sell tot", format="%.2f"),
                              "date_sell": st.column_config.DateColumn("Sell Date"),
                              "currency": st.column_config.TextColumn("Currency"),
                              "dividends": st.column_config.NumberColumn("Dividends", format="%.2f"),
