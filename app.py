@@ -10,7 +10,8 @@ def load_cached_data():
     """Load data from database with caching"""
     engine = db_operations.get_connection()
     df = db_operations.load_data(engine)
-    return df  # .drop(columns=["id"])
+    df = df[~df['date_sell'].astype(str).str.contains('2024')]
+    return df
 
 
 @st.cache_data(ttl=600)  # Cache for 10 minute
