@@ -70,11 +70,8 @@ def api_current_price(df):
 
         # Report any tickers that couldn't be fetched
         failed_tickers = set(open_tickers) - set(ticker_prices.keys())
-        for ticker in failed_tickers:
-            print(f"Could not fetch price for {ticker}")
 
     except Exception as e:
-        print(f"Error fetching prices: {e}")
         # Fallback to original method if bulk fetch fails
         for ticker in open_tickers:
             try:
@@ -88,7 +85,7 @@ def api_current_price(df):
                                                          axis=1)
                 df.loc[stock_mask, "date_sell"] = "OPEN"
             except Exception as ticker_error:
-                print(f"Could not fetch price for {ticker}: {ticker_error}")
+                pass
 
     return df
 
