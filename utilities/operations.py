@@ -59,33 +59,51 @@ def api_current_price(df):
                     print(f"Could not extract price for {ticker}")
                     continue
 
-        # Update dataframe with fetched prices
+        # Update dataframe with fetched prices - VECTORIZED
+        today = datetime.date.today()
+
         for ticker, current_price in ticker_prices.items():
             stock_mask = (df["ticker"] == ticker) & open_mask
+
+            # Vectorized operations - no loops
             df.loc[stock_mask, "total_sell"] = current_price * df.loc[stock_mask, "quantity_buy"]
             df.loc[stock_mask, "earning"] = round(df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"], 2)
-            df.loc[stock_mask, "date_sell"] = datetime.date.today()
-            df.loc[stock_mask, "earning"] = df.apply(lambda row: convert_to_eur(row, "earning", "date_sell"), axis=1)
-            df.loc[stock_mask, "date_sell"] = "OPEN"
+            df.loc[stock_mask, "date_sell"] = today
 
-        # Report any tickers that couldn't be fetched
-        failed_tickers = set(open_tickers) - set(ticker_prices.keys())
+        # Convert all earnings to EUR at once (only for updated rows)
+        updated_mask = df["ticker"].isin(ticker_prices.keys()) & open_mask
+        if updated_mask.any():
+            # Call convert_to_eur only on rows that were updated
+            df.loc[updated_mask, "earning"] = df.loc[updated_mask].apply(
+                lambda row: convert_to_eur(row, "earning", "date_sell"), axis=1
+            )
+
+        # Set date_sell to "OPEN" for all updated rows
+        df.loc[updated_mask, "date_sell"] = "OPEN"
 
     except Exception as e:
         # Fallback to original method if bulk fetch fails
+        today = datetime.date.today()
+
         for ticker in open_tickers:
             try:
                 current_price = yf.Ticker(ticker).history(period="1d")["Close"].iloc[-1]
                 stock_mask = (df["ticker"] == ticker) & open_mask
+
                 df.loc[stock_mask, "total_sell"] = current_price * df.loc[stock_mask, "quantity_buy"]
                 df.loc[stock_mask, "earning"] = round(
                     df.loc[stock_mask, "total_sell"] - df.loc[stock_mask, "total_buy"], 2)
-                df.loc[stock_mask, "date_sell"] = datetime.date.today()
-                df.loc[stock_mask, "earning"] = df.apply(lambda row: convert_to_eur(row, "earning", "date_sell"),
-                                                         axis=1)
-                df.loc[stock_mask, "date_sell"] = "OPEN"
+                df.loc[stock_mask, "date_sell"] = today
             except Exception as ticker_error:
                 pass
+
+        # Convert all earnings to EUR at once in fallback too
+        updated_mask = df["date_sell"] == today
+        if updated_mask.any():
+            df.loc[updated_mask, "earning"] = df.loc[updated_mask].apply(
+                lambda row: convert_to_eur(row, "earning", "date_sell"), axis=1
+            )
+        df.loc[updated_mask, "date_sell"] = "OPEN"
 
     return df
 

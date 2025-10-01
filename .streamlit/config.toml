@@ -4,5 +4,3 @@ backgroundColor = "#1E1E1E"
 secondaryBackgroundColor = "#262730"
 textColor = "#FAFAFA"
 font = "sans serif"
-[layout]
-wide = true
