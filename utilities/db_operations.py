@@ -87,3 +87,31 @@ def delete_stock(engine, record_id):
         query = text(f"DELETE FROM transactions WHERE id = :id")
         conn.execute(query, {"id": record_id})
         conn.commit()
+
+
+def add_etf(engine, selected_owner, selected_stock, new_price, new_qty):
+    if selected_owner and selected_stock and new_price > 0 and new_qty > 0:
+        metadata = MetaData()
+        transactions_table = Table("transactions", metadata, autoload_with=engine)
+        avg = ((transactions_table.c.price_buy * transactions_table.c.quantity_buy) +
+               (new_price * new_qty)) / (transactions_table.c.quantity_buy + new_qty)
+        with engine.connect() as conn:
+            stmt = (
+                update(transactions_table)
+                .where(
+                    (transactions_table.c.stock == selected_stock) &
+                    (transactions_table.c.owner == selected_owner) &
+                    (transactions_table.c.date_sell == None)
+                )
+                .values(
+                    price_buy=avg,
+                    quantity_buy=transactions_table.c.quantity_buy + new_qty,
+                )
+            )
+            conn.execute(stmt)
+            conn.commit()
+            st.success("ETF buying added")
+    else:
+        st.error("Please fill all fields.")
+
+

@@ -291,7 +291,7 @@ with col1:
             toggle_form("A")
 
     with col_2:
-        if st.button("✔️ Close open transaction", use_container_width=True):
+        if st.button("✔️ Modify open position", use_container_width=True):
             toggle_form("B")
 
     with col_3:
@@ -314,7 +314,7 @@ with col1:
             owner = st.selectbox("Select Owner", df["owner"].unique())
             stock = st.text_input("Stock")
             ticker = st.text_input("Ticker (e.g. TSLA)")
-            price_buy = st.number_input("Stock buy price", step=0.01)
+            price_buy = st.number_input("Stock buy price", step=0.001)
             quantity_buy = st.number_input("Q.ty", step=0.01)
             date_buy = st.date_input("Date buy", value=today)
             currency = st.selectbox("Currency", ["EUR", "USD", "PLN"])
@@ -327,7 +327,7 @@ with col1:
 
             # Show additional fields based on session state
             if st.session_state.sold_checkbox:
-                price_sell = st.number_input("Stock sale price", step=0.01)
+                price_sell = st.number_input("Stock sale price", step=0.001)
                 quantity_sell = st.number_input("Q.ty sold", step=0.01)
                 date_sell = st.date_input("Date sold", value=today)
                 dividends = st.number_input("Dividends received", step=0.01)
@@ -343,30 +343,88 @@ with col1:
 
     elif st.session_state.active_form == "B":
         # SOLUTION 1: Move the owner selection outside the form
-        st.subheader("Close open position")
-        selected_owner = st.selectbox("Select Owner", df["owner"].unique(), key="close_owner_select")
+        st.subheader("Modify open position")
 
-        # Filter open positions for that owner
-        open_stocks = df[(df["owner"] == selected_owner) & (df["date_sell"].isna())]
+        action = st.radio("", ("Close transaction", "Additional Purchase"))
 
-        if not open_stocks.empty:
-            with st.form("form_b"):
-                # Create selectbox of stock names
-                selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
+        if action == "Close transaction":
+            selected_owner = st.selectbox("Select Owner", df["owner"].unique(), key="close_owner_select")
 
-                price_sell = st.number_input("Sell Price", step=0.01)
-                quantity_sell = st.number_input("Q.ty", step=0.01)
-                date_sell = st.date_input("Date sold", value=today)
-                dividends = st.number_input("Dividends received", step=0.01)
+            # Filter open positions for that owner
+            open_stocks = df[(df["owner"] == selected_owner) & (df["date_sell"].isna())]
 
-                if st.form_submit_button("Submit"):
-                    engine = db_operations.get_connection()
-                    db_operations.close_stock(engine, selected_owner, selected_stock, price_sell, date_sell,
-                                              quantity_sell, dividends)
-                    clear_cache()  # Clear cache after closing position
-                    st.success("Position closed successfully!")
+            if not open_stocks.empty:
+                with st.form("form_b"):
+                    # Create selectbox of stock names
+                    selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
+                    price_sell = st.number_input("Sell Price", step=0.001)
+                    quantity_sell = st.number_input("Q.ty", step=0.01)
+                    date_sell = st.date_input("Date sold", value=today)
+                    dividends = st.number_input("Dividends received", step=0.01)
+
+                    if st.form_submit_button("Submit"):
+                        engine = db_operations.get_connection()
+                        db_operations.close_stock(engine, selected_owner, selected_stock, price_sell, date_sell,
+                                                  quantity_sell, dividends)
+                        clear_cache()  # Clear cache after closing position
+                        st.success("Position closed successfully!")
         else:
-            st.info("No open positions found for this owner.")
+            selected_owner = st.selectbox("Select Owner", df["owner"].unique(), key="close_owner_select")
+
+            # Filter open positions for that owner
+            open_stocks = df[(df["owner"] == selected_owner) & (df["date_sell"].isna())]
+            if not open_stocks.empty:
+                with st.form("form_b"):
+                    # Create selectbox of stock names
+                    selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
+                    new_price = st.number_input("Buy Price", step=0.001)
+                    new_qty = st.number_input("Q.ty", step=0.01)
+
+                    if st.form_submit_button("Submit"):
+                        engine = db_operations.get_connection()
+                        db_operations.add_etf(engine, selected_owner, selected_stock, new_price, new_qty)
+                        clear_cache()  # Clear cache after closing position
+
+        # # Initialize session state for additional purchase checkbox if not exists
+        # if 'close_checkbox' not in st.session_state:
+        #     st.session_state.close_checkbox = True
+        # etf = st.checkbox("Close open transaction", key='close_checkbox')
+        #
+        # # Initialize session state for additional purchase checkbox if not exists
+        # if 'etf_checkbox' not in st.session_state:
+        #     st.session_state.etf_checkbox = False
+        # etf = st.checkbox("Additional purchase", key='etf_checkbox')
+
+        # selected_owner = st.selectbox("Select Owner", df["owner"].unique(), key="close_owner_select")
+        #
+        # # Filter open positions for that owner
+        # open_stocks = df[(df["owner"] == selected_owner) & (df["date_sell"].isna())]
+        #
+        # if not open_stocks.empty:
+        #     with st.form("form_b"):
+        #         # Create selectbox of stock names
+        #         selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
+        #
+        #         if st.session_state.etf_checkbox:
+        #             new_price = st.number_input("Buy Price", step=0.001)
+        #             new_qty = st.number_input("Q.ty", step=0.01)
+        #
+        #             if st.form_submit_button("Submit"):
+        #                 engine = db_operations.get_connection()
+        #                 db_operations.add_etf(engine, selected_owner, selected_stock, new_price, new_qty)
+        #                 clear_cache()  # Clear cache after closing position
+        #         else:
+        #             price_sell = st.number_input("Sell Price", step=0.001)
+        #             quantity_sell = st.number_input("Q.ty", step=0.01)
+        #             date_sell = st.date_input("Date sold", value=today)
+        #             dividends = st.number_input("Dividends received", step=0.01)
+        #
+        #             if st.form_submit_button("Submit"):
+        #                 engine = db_operations.get_connection()
+        #                 db_operations.close_stock(engine, selected_owner, selected_stock, price_sell, date_sell,
+        #                                           quantity_sell, dividends)
+        #                 clear_cache()  # Clear cache after closing position
+        #                 st.success("Position closed successfully!")
 
     elif st.session_state.active_form == "C":
         with st.form("form_c"):
