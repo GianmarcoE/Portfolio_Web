@@ -105,7 +105,7 @@ def clear_cache():
 st.set_page_config(layout="wide")
 col1, col2 = st.columns(2)
 with col1:
-    st.title("Transactions List")
+    st.title("Trading Portfolio")
 with col2:
     # Create custom CSS for right-aligned button
     st.markdown("""
@@ -174,7 +174,7 @@ if selected_owners:
     rows_needed = (len(selected_owners) + cards_per_row - 1) // cards_per_row
 
     for row in range(rows_needed):
-        cols = st.columns(cards_per_row)
+        cols = st.columns(cards_per_row + 1)
         for i in range(cards_per_row):
             owner_idx = row * cards_per_row + i
             if owner_idx < len(selected_owners):
@@ -217,6 +217,17 @@ filtered_df = df_with_metrics[df_with_metrics["owner"].isin(selected_owners)] if
 # Get current prices only when needed and cache the result
 if not filtered_df.empty:
     open_df = get_current_prices(filtered_df)
+    closed_transactions = open_df[open_df["date_sell"] != "OPEN"]
+    # Show top and worst transactions (only calculate when we have data)
+    # if not closed_transactions.empty:
+    top_3 = closed_transactions.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
+    top_3['label'] = top_3['owner'] + ' - ' + top_3['stock']
+    worst_3 = closed_transactions.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
+    worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
+
+    fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
+    fig_worst = operations.top_worst_graph(False, worst_3, '#d61111', 'Worst transactions')
+    fig_ring = operations.ring_chart(closed_transactions)
 
     # Handle open positions for chart
     if include_open:
@@ -253,21 +264,12 @@ if not filtered_df.empty:
                          )
         st.write("")
 
-    # Show top and worst transactions (only calculate when we have data)
-    closed_transactions = open_df[open_df["date_sell"] != "OPEN"]
-    if not closed_transactions.empty:
-        top_3 = closed_transactions.nlargest(3, 'earning')[['owner', 'stock', 'earning']]
-        top_3['label'] = top_3['owner'] + ' - ' + top_3['stock']
-        worst_3 = closed_transactions.nsmallest(3, 'earning')[['owner', 'stock', 'earning']]
-        worst_3['label'] = worst_3['owner'] + ' - ' + worst_3['stock']
-
-        fig_best = operations.top_worst_graph(True, top_3, 'green', 'Best transactions')
-        fig_worst = operations.top_worst_graph(False, worst_3, '#d61111', 'Worst transactions')
-
-        with col2:
-            st.plotly_chart(fig_best, use_container_width=True)
-            st.write("")
-            st.plotly_chart(fig_worst, use_container_width=True)
+    with col2:
+        st.plotly_chart(fig_best, use_container_width=True)
+        st.write("")
+        st.plotly_chart(fig_worst, use_container_width=True)
+        # st.write("")
+        # st.plotly_chart(fig_ring, use_container_width=True)
 else:
     st.info("Select at least one owner to view data.")
 
@@ -385,47 +387,6 @@ with col1:
                         db_operations.add_etf(engine, selected_owner, selected_stock, new_price, new_qty)
                         clear_cache()  # Clear cache after closing position
 
-        # # Initialize session state for additional purchase checkbox if not exists
-        # if 'close_checkbox' not in st.session_state:
-        #     st.session_state.close_checkbox = True
-        # etf = st.checkbox("Close open transaction", key='close_checkbox')
-        #
-        # # Initialize session state for additional purchase checkbox if not exists
-        # if 'etf_checkbox' not in st.session_state:
-        #     st.session_state.etf_checkbox = False
-        # etf = st.checkbox("Additional purchase", key='etf_checkbox')
-
-        # selected_owner = st.selectbox("Select Owner", df["owner"].unique(), key="close_owner_select")
-        #
-        # # Filter open positions for that owner
-        # open_stocks = df[(df["owner"] == selected_owner) & (df["date_sell"].isna())]
-        #
-        # if not open_stocks.empty:
-        #     with st.form("form_b"):
-        #         # Create selectbox of stock names
-        #         selected_stock = st.selectbox("Select open stock", open_stocks["stock"].unique())
-        #
-        #         if st.session_state.etf_checkbox:
-        #             new_price = st.number_input("Buy Price", step=0.001)
-        #             new_qty = st.number_input("Q.ty", step=0.01)
-        #
-        #             if st.form_submit_button("Submit"):
-        #                 engine = db_operations.get_connection()
-        #                 db_operations.add_etf(engine, selected_owner, selected_stock, new_price, new_qty)
-        #                 clear_cache()  # Clear cache after closing position
-        #         else:
-        #             price_sell = st.number_input("Sell Price", step=0.001)
-        #             quantity_sell = st.number_input("Q.ty", step=0.01)
-        #             date_sell = st.date_input("Date sold", value=today)
-        #             dividends = st.number_input("Dividends received", step=0.01)
-        #
-        #             if st.form_submit_button("Submit"):
-        #                 engine = db_operations.get_connection()
-        #                 db_operations.close_stock(engine, selected_owner, selected_stock, price_sell, date_sell,
-        #                                           quantity_sell, dividends)
-        #                 clear_cache()  # Clear cache after closing position
-        #                 st.success("Position closed successfully!")
-
     elif st.session_state.active_form == "C":
         with st.form("form_c"):
             st.subheader("Delete record")
@@ -436,3 +397,6 @@ with col1:
                 db_operations.delete_stock(engine, delete_id)
                 clear_cache()  # Clear cache after deleting record
                 st.success("Record deleted successfully!")
+
+with cols[-1]:
+    st.plotly_chart(fig_ring, use_container_width=True)

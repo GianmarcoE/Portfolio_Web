@@ -3,6 +3,7 @@ import requests
 import json
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.colors import qualitative
 import yfinance as yf
 
 
@@ -217,7 +218,7 @@ def top_worst_graph(is_top, stocks, color, graph_title):
 
 
 def badges(bcolor, color, text):
-    # Create HTML badge instead of st.badge
+    # Create HTML badge
     html_badge = f"""
                        <span style="
                            background-color: {bcolor};
@@ -234,3 +235,44 @@ def badges(bcolor, color, text):
                        ">{text}</span>
                        """
     return html_badge
+
+
+def ring_chart(closed_transactions):
+    # Group by stock and sum all earnings (so multiple trades are combined)
+    stock_summary = (
+        closed_transactions
+        .groupby('stock', as_index=False)['earning']
+        .sum()
+    )
+
+    top_4 = stock_summary.nlargest(4, 'earning')
+    # Sum of the rest (not in top 4)
+    others_sum = stock_summary[~stock_summary['stock'].isin(top_4['stock'])]['earning'].sum()
+
+    labels = list(top_4['stock']) + ["Others"]
+    values = list(top_4['earning']) + [others_sum]
+
+    colors = qualitative.Safe[:len(labels)]
+
+    # Create donut chart
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.8,
+        textinfo='label+percent',  # only percent on chart
+        textposition='outside',  # move labels outside
+        marker=dict(colors=colors)
+    )])
+
+    fig.update_layout(
+        title=dict(
+            text="Most profitable stocks",
+            x=0.25,  # Center the title
+            font=dict(size=15, family='Arial', color='#b8b6b6')
+        ),
+        height=320,
+        showlegend=False,
+        legend_title_text="Stocks",
+    )
+
+    return fig
