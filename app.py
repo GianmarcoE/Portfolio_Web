@@ -102,7 +102,7 @@ def clear_cache():
     st.cache_data.clear()
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(initial_sidebar_state="collapsed", layout="wide")
 col1, col2 = st.columns(2)
 with col1:
     st.title("Trading Portfolio")
@@ -154,12 +154,13 @@ owner_stats = calculate_owner_stats(df_with_metrics)
 badge_1 = operations.badges('#189e25', 'white', '👑 King Fiches')
 badge_2 = operations.badges('#7a0b6f', 'white', '🏃‍♂️ Chaser')
 badge_3 = operations.badges('#9e1e18', 'white', '💩 Loser')
-badges = [badge_1, badge_2, badge_3]
+badge_4 = operations.badges('#d93bd6', 'white', '👶 Newbie')
+badges = [badge_1, badge_2, badge_3, badge_4]
 
 # Get top 3 earners sorted by total_earnings (descending)
 top_3_earners = sorted(owner_stats.items(),
                        key=lambda x: x[1]['total_earnings'],
-                       reverse=True)[:3]
+                       reverse=True)[:4]
 
 # Assign badges to top 3 earners
 for i, (owner_name, owner_data) in enumerate(top_3_earners):
@@ -170,11 +171,11 @@ if selected_owners:
     st.subheader("📊 Owner Performance Summary")
 
     # Create cards for selected owners
-    cards_per_row = 3
+    cards_per_row = len(selected_owners) if len(selected_owners) in [3, 4] else 3  # 4
     rows_needed = (len(selected_owners) + cards_per_row - 1) // cards_per_row
 
     for row in range(rows_needed):
-        cols = st.columns(cards_per_row + 1)
+        cols = st.columns(cards_per_row)
         for i in range(cards_per_row):
             owner_idx = row * cards_per_row + i
             if owner_idx < len(selected_owners):
@@ -244,6 +245,7 @@ if not filtered_df.empty:
     with col1:
         st.markdown("Total Earnings")
         st.line_chart(chart_df)
+        print(chart_df)
 
         with st.expander("Show all transactions details", expanded=False):
             st.dataframe(open_df.drop(columns=["quantity_buy", "price_sell", "quantity_sell"]),
@@ -398,5 +400,5 @@ with col1:
                 clear_cache()  # Clear cache after deleting record
                 st.success("Record deleted successfully!")
 
-with cols[-1]:
+with st.sidebar:
     st.plotly_chart(fig_ring, use_container_width=True)
