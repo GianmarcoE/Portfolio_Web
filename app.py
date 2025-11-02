@@ -103,6 +103,7 @@ def clear_cache():
 
 
 st.set_page_config(initial_sidebar_state="collapsed", layout="wide")
+operations.login()
 col1, col2 = st.columns(2)
 with col1:
     st.title("Trading Portfolio")
@@ -124,7 +125,12 @@ st.write("")
 today = datetime.date.today()
 
 # Load data with caching
-df = load_cached_data()
+test = False
+if not test:
+    df = load_cached_data()
+else:
+    df = pd.read_csv(r"C:\Users\gianm\OneDrive\Desktop\portfolio_db_test")
+
 owners = df["owner"].unique().tolist()
 
 col1, col2 = st.columns([2, 1])  # col1 is twice as wide

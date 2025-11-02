@@ -5,6 +5,29 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.colors import qualitative
 import yfinance as yf
+import streamlit as st
+
+
+def login():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if not st.session_state.authenticated:
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            with st.form("login_form"):
+                st.title("🔐 Login")
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                submit = st.form_submit_button("Login")
+
+            if submit:
+                allowed_users = st.secrets["users"]
+                if username in allowed_users and password == allowed_users[username]["password"]:
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+        st.stop()
 
 
 def api_request_fx(currency, transaction_date) -> float:
