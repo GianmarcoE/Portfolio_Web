@@ -136,18 +136,16 @@ owners = df["owner"].unique().tolist()
 col1, col2 = st.columns([2, 1])  # col1 is twice as wide
 with col1:
     with st.expander("Settings ⚙️", expanded=False):
-        st.caption("Owners Selection")
+        # st.caption("Owners Selection")
         cols = st.columns(len(owners))
-        selected_owners = [
-            owner for col, owner in zip(cols, owners)
-            if col.checkbox(owner, value=True, key=f"chk_{owner}")
-        ]
-        st.caption("Others")
-        col_1, col_2 = st.columns(2)
+        selected_owners = st.pills(None, owners, selection_mode="multi", default=owners)
+        # st.caption("Others")
+        st.write("")
+        col_1, col_2 = st.columns([1, 3])
         with col_1:
-            include_dividends = st.checkbox("Include dividends", value=True, key="include_dividends")
+            include_dividends = st.toggle("Include dividends", value=True, key="include_dividends")
         with col_2:
-            include_open = st.checkbox("Include open positions", value=False, key="include_open")
+            include_open = st.toggle("Include open positions", value=False, key="include_open")
 
     st.write("")
 
